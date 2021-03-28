@@ -1,0 +1,223 @@
+++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\
+++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\
+++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\++//++\\
+
+
+////    DONE    ////
+1)
+Перенести процесс
+
+1. парсинга IP-адреса,
+2. парсинга User-Agent,
+3. сохранение модели в таблицу visits
+
+в отдельную job, которая будет заполнять очередь под названием parsing.
+////    DONE    ////
+
+job     -- one job
+Queue   -- named "parsing"
+
+2)
+Реализовать seed для заполнения очереди сообщениями.
+
+
+
+My actions:
+1.
+I will be using standart laravel database for jobs as my queue provider
+First I read throught all of the docs
+
+in thory the best way to do this shit is to use rabbitMQ
+Laravel doesnt provade a deafult lib for working with rabbitMQ
+becouse its imposible to make a lib for all of te providers since they are so
+different in the core mechanisms.
+
+2.
+php artisan queue:table
+
+it created a new database/migration/MIGRATION
+
+!
+By deafult in larave; there is a special queue table from whih
+everything is proccesed
+
+next
+php artisan migrate
+
+or (php artisan migrate:refresh, php artisan db:seed)
+
+it will actually create a table in db
+
+
+2)
+the next step is a job creation
+
+php artisan make:job <NAME>
+
+this will create
+
+app/Jobs/<NAME OF A JOB>
+
+in my case it's
+
+php artisan make:job ProcessVisit
+
+3)
+got to app/Jobs/<NAME OF A JOB>
+
+and add stuff there
+showen in laravel docs
+
+
+4)
+go to .env
+
+QUEUE_CONNECTION=
+
+change this to the needed paramentr
+YOU can look it up in config/queue.php in a 'driver' field
+
+in my case it was
+'database' => [
+    'driver' => 'database',
+    'table' => 'jobs',
+    'queue' => 'default',
+    'retry_after' => 90,
+],
+
+'driver' => 'database',
+so database
+
+QUEUE_CONNECTION=database
+
+
+5)
+now actually summon a queue
+in your class
+do
+
+use use App\Jobs\<NAME OF A JOB>;
+
+<NAME OF A JOB>::dispatch($process, $process2, $process3);
+
+this will put processes in deafult queue
+
+in my case it's:
+ProcessVisit::dispatch($reader, $result)->handle()
+    ->onQueue('parsing');
+
+onQueue is just a que name
+instead of deafut in will process everything in a parsing queue.
+
+6)
+check your db if the logic from Controller to job was transfered correctly
+it will now do stuff in a queue.
+
+and boom
+you have a queue with a database driver running!
+
+
+
+7)
+  SUPERVISOR
+
+HOW TO MAKE TWO OR MORE JOBS AT THE SAME TIEM?
+the answer is SUPERVISOR
+more info in laravel docs
+
+by deafult ir is installed in vagrant
+
+go to /etc/supervisor/conf.d
+on your vm
+
+sudo touch my_laravel_jobs.conf
+
+
+edit it like a so:
+
+[program:my_laravel_jobs]
+process_name=%(program_name)s_%(process_num)02d
+command=php /home/vagrant/www/artisan queue:work
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=vagrant
+numprocs=3
+redirect_stderr=true
+stdout_logfile=/home/vagrant/www/storage/logs/worker.log
+stopwaitsecs=3600
+
+or something...
+
+
+and start it!
+
+sudo supervisorctl reread
+
+sudo supervisorctl update
+
+sudo supervisorctl start my_laravel_jobs:*
+
+
+
+
+
+
+
+
+
+
+
+NOTE
+installing rabbitMQ driver
+add this to composer.json
+"vladimir-yuldashev/laravel-queue-rabbitmq": "^11.2.0",
+
+composer update
+
+and boom
+driver installed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//
